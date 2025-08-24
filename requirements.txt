@@ -1,0 +1,17 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+pandas
+s3fs
+smart-open
+pillow
+torch
+torchvision
+torchaudio
+sentence-transformers
+transformers
+boto3
+einops
+supabase
+psycopg2
+python-dotenv
+pyarrow
+tqdm
