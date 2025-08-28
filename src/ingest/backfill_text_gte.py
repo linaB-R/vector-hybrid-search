@@ -3,11 +3,10 @@ from typing import List, Tuple
 
 import psycopg2
 from psycopg2.extras import execute_values
-import pandas as pd
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from src.embeddings.text_je3 import encode_texts
+from src.embeddings.text_gte_base import encode_texts
 
 
 def _db():
@@ -31,7 +30,7 @@ def _fetch_batch(cur, limit: int) -> List[Tuple[int, str]]:
                  CASE WHEN COALESCE(product_description,'') <> '' THEN '. ' || product_description ELSE '' END
                )) AS txt
         FROM glovo_ai.products
-        WHERE text_emb_je3 IS NULL
+        WHERE text_emb_gte IS NULL
         ORDER BY id
         LIMIT %s;
         """,
@@ -44,15 +43,13 @@ def _vec_literal(vec: List[float]) -> str:
     return "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
 
 
-def main(batch_size: int = 128):
+def main(batch_size: int = 256):
     with _db() as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT COUNT(*)
-                FROM glovo_ai.products
-                WHERE text_emb_je3 IS NULL;
+                SELECT COUNT(*) FROM glovo_ai.products WHERE text_emb_gte IS NULL;
                 """
             )
             total = cur.fetchone()[0]
@@ -67,7 +64,7 @@ def main(batch_size: int = 128):
                 pairs = [(i, _vec_literal(e)) for i, e in zip(ids, embs)]
                 sql = (
                     "UPDATE glovo_ai.products AS p "
-                    "SET text_emb_je3 = v.emb::vector, updated_at = now() "
+                    "SET text_emb_gte = v.emb::vector, updated_at = now() "
                     "FROM (VALUES %s) AS v(id, emb) "
                     "WHERE p.id = v.id;"
                 )
@@ -79,8 +76,8 @@ def main(batch_size: int = 128):
 if __name__ == "__main__":
     import argparse
 
-    p = argparse.ArgumentParser(description="Backfill JE-3 text embeddings")
-    p.add_argument("--batch-size", type=int, default=128)
+    p = argparse.ArgumentParser(description="Backfill GTE multilingual-base text embeddings")
+    p.add_argument("--batch-size", type=int, default=256)
     args = p.parse_args()
     main(batch_size=args.batch_size)
 

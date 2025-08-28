@@ -14,7 +14,7 @@ OUTPUT_FILENAME = "filtered_dataset.parquet"
 CHUNK_SIZE = 200_000
 
 
-def ingest_s3_csv_to_parquet(max_records=None, output_dir=DEFAULT_OUTPUT_DIR, output_file=None):
+def ingest_s3_csv_to_parquet(max_records=None, output_dir=DEFAULT_OUTPUT_DIR, output_file=None, country_codes=None):
     """
     Stream a CSV from public S3 in chunks, filter out rows where `store_name` starts
     with 'AS_' and keep only rows with a non-empty `s3_path`, then write the result
@@ -56,9 +56,22 @@ def ingest_s3_csv_to_parquet(max_records=None, output_dir=DEFAULT_OUTPUT_DIR, ou
             mask_valid_image = chunk["s3_path"].notna() & (
                 chunk["s3_path"].astype(str).str.strip() != ""
             )
+            # require non-null, non-empty product_description
+            mask_has_description = chunk["product_description"].notna() & (
+                chunk["product_description"].astype(str).str.strip() != ""
+            )
             mask_not_autostore = ~chunk["store_name"].fillna("").astype(str).str.startswith("AS_")
 
-            sub = chunk[mask_valid_image & mask_not_autostore]
+            # optional country code filter (single or multiple)
+            if country_codes:
+                if isinstance(country_codes, (list, tuple, set)):
+                    mask_country = chunk["country_code"].isin(list(country_codes))
+                else:
+                    mask_country = chunk["country_code"] == country_codes
+            else:
+                mask_country = True
+
+            sub = chunk[mask_valid_image & mask_has_description & mask_not_autostore & mask_country]
             if not sub.empty:
                 if max_records and total_filtered + len(sub) > max_records:
                     remaining = max_records - total_filtered
@@ -96,12 +109,14 @@ def main():
                         help=f"Directory to save the Parquet file (default: {DEFAULT_OUTPUT_DIR})")
     parser.add_argument("--output-file", type=str, 
                         help="Complete file path (e.g., 'data/custom.parquet'). Overrides --output-dir")
+    parser.add_argument("--country-codes", type=str, nargs='*', help="Optional list of country_code filters (e.g., ES PT IT). If omitted, no country filter is applied.")
     
     args = parser.parse_args()
     ingest_s3_csv_to_parquet(
         max_records=args.max_records, 
         output_dir=args.output_dir,
-        output_file=args.output_file
+        output_file=args.output_file,
+        country_codes=args.country_codes
     )
 
 

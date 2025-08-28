@@ -5,6 +5,43 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
 ## [Unreleased]
 
 ### Added
+- **New vector embedding models and backfill scripts**
+  - Added four new vector columns to `glovo_ai.products` table:
+    - `text_emb_e5` (384D) - embeddings from `intfloat/multilingual-e5-small`
+    - `text_emb_gte` (768D) - embeddings from `Alibaba-NLP/gte-multilingual-base`
+    - `image_emb_clip` (512D) - image embeddings from `openai/clip-vit-base-patch32`
+    - `text_emb_clip_multi` (512D) - multilingual text embeddings from `sentence-transformers/clip-ViT-B-32-multilingual-v1`
+  - Created embedding modules:
+    - `src/embeddings/text_e5_small.py` - E5-small multilingual text embeddings
+    - `src/embeddings/text_gte_base.py` - GTE multilingual-base text embeddings
+    - `src/embeddings/text_clip_multi.py` - CLIP multilingual text embeddings (512D)
+    - `src/embeddings/image_clip_vitb32.py` - CLIP ViT-B/32 image embeddings (512D)
+  - Implemented batch backfill scripts with efficient processing:
+    - `src/ingest/backfill_text_e5.py` - fills `text_emb_e5` column
+    - `src/ingest/backfill_text_gte.py` - fills `text_emb_gte` column
+    - `src/ingest/backfill_clip_512.py` - fills both `text_emb_clip_multi` and `image_emb_clip` columns
+  - Enhanced `src/ingest/ingest_s3_csv.py`:
+    - Added filter to require non-null `product_description` in all records
+    - Added optional country code filtering with `--country-codes` parameter (single or multiple codes)
+    - Example usage: `--country-codes ES PT IT` or `--country-codes ES`
+  - Updated `src/ingest/backfill_text_je3.py` to include `collection_section` in concatenated text
+  - All backfill scripts now process only NULL embedding records for efficiency
+  - Implemented batch updates using `execute_values` for optimal database performance
+  - Added comprehensive column documentation with COMMENT ON COLUMN statements
+
+### Enhanced
+- Database schema with ALTER TABLE statements for new vector columns
+- Text concatenation format: `product_name · collection_section. product_description`
+- Batch processing optimization across all embedding backfill scripts
+- NULL-only filtering to prevent reprocessing of existing embeddings
+
+### Technical Improvements
+- Cross-modal CLIP embeddings: 512D text and image embeddings in same vector space
+- Multilingual support across all new embedding models
+- Efficient batch encoding with configurable batch sizes
+- Memory-optimized tensor operations with GPU acceleration
+
+### Added
 - **Production parquet loader** (`src/loader/upload_parquet_to_supabase.py`)
   - Bulk loads filtered parquet datasets into `glovo_ai.products` table
   - Primary method: PostgreSQL COPY FROM STDIN for maximum performance
@@ -21,10 +58,59 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
   - Connectivity validation before processing
   - Maps parquet columns 1:1 to database schema, leaves embedding fields as NULL
   - Derives and stores full S3 URL in new `s3_url` column for direct downloads
-- **Embedding backfill scripts**
-  - `src/ingest/backfill_text_je3.py` now shows a tqdm progress bar
-  - `src/ingest/backfill_clip_v2.py` now shows tqdm progress bars for text and image modes and reads from public S3 with anonymous access
+
+- **GPU-optimized embedding modules** with CUDA acceleration
+  - `src/embeddings/text_je3.py` - Jina Embeddings v3 (1024D multilingual text embeddings)
+    - Automatic CUDA/CPU device detection with FP16 optimization
+    - PyTorch SDPA attention implementation (avoids flash-attention dependencies)
+    - Configurable batch sizes with default batch_size=256 for optimal GPU utilization
+    - CUDA memory optimization with expandable segments allocator
+    - Model warm-up for kernel stabilization and reduced first-inference latency
+    - Intelligent HF_HOME cache directory usage with fallback to `./models_cache`
+  - `src/embeddings/clip_v2.py` - Jina CLIP v2 (1024D unified text/image embeddings)
+    - Dual-modal support for both text and image embedding generation
+    - GPU-optimized with FP16 precision and SDPA attention implementation
+    - Separate batch size configurations: 256 for text, 128 for images
+    - Comprehensive warm-up strategy with dummy text and image inputs
+    - Memory-efficient tensor operations with CPU transfer only at final step
+    - Support for PIL Image inputs with automatic preprocessing
+
+- **Embedding backfill scripts** with enhanced performance and monitoring
+  - `src/ingest/backfill_text_je3.py` - JE-3 text embedding backfill with tqdm progress bars
+  - `src/ingest/backfill_clip_v2.py` - CLIP v2 backfill supporting both text and image modes
+    - Dual-mode operation: `--mode text` or `--mode image`
+    - Anonymous S3 access for public image datasets
+    - Configurable batch sizes optimized for different modalities
+    - Real-time progress tracking with tqdm integration
   - In-memory CSV conversion for COPY operations (no temporary files)
+
+- **Google Colab production notebook** (`src/loader/Backfill_JE3_CLIPv2_to_Supabase.ipynb`)
+  - Complete GPU-accelerated workflow for embedding generation in Google Colab
+  - Tesla T4 GPU optimization with CUDA 12.6 and PyTorch 2.8 compatibility
+  - Integrated Google Drive mounting for HF_HOME cache persistence
+  - Colab Secrets integration for secure database credential management
+  - Step-by-step setup: dependencies, GPU verification, Drive cache, secrets, and execution
+  - Production-ready with proper Python package structure and module imports
+  - Automated environment configuration for CUDA memory allocation and tokenizer parallelism
+
+## [0.2.0] - 2025-08-24
+
+### Added
+- **GPU-accelerated embedding generation** with production-ready CUDA optimization
+- **Jina Embeddings v3** and **Jina CLIP v2** integration with intelligent caching
+- **Google Colab workflow** for scalable embedding backfill operations
+- **HF_HOME cache management** for persistent model storage across sessions
+
+### Enhanced
+- Embedding modules with FP16 precision and SDPA attention for Tesla T4 compatibility
+- Backfill scripts with configurable batch sizes and real-time progress monitoring
+- Memory optimization strategies for large-scale embedding generation
+
+### Technical Improvements
+- PyTorch CUDA allocator configuration with expandable segments
+- Flash-attention fallback handling for older GPU architectures
+- Automated model warm-up for reduced inference latency
+- Environment variable standardization for Hugging Face cache directories
 
 ## [0.1.0] - 2025-08-23
 
@@ -57,15 +143,22 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
   - S3 integration with anonymous access for dataset retrieval; backfill scripts fetch from public S3
 
 ### Technical Specifications
-- **Vector dimensions**: Text embeddings (`jina-embeddings-v3`, 1024d), CLIP text/image (`jina-clip-v2`, 1024d each)
+- **Vector dimensions**: 
+  - Text embeddings: JE-3 (`jina-embeddings-v3`, 1024d), E5-small (384d), GTE-base (768d)
+  - CLIP embeddings: v2 text/image (`jina-clip-v2`, 1024d each), multilingual text (512d), ViT-B/32 image (512d)
 - **Index type**: HNSW with cosine similarity (`vector_cosine_ops`)
 - **Index tuning**: m=16, ef_construction=200 (configurable)
 - **Search optimization**: Recommended `ef_search=40` for runtime queries
 - **Database constraints**: No NOT NULLs, no foreign keys for ingestion speed
+- **GPU optimization**: CUDA acceleration with FP16 precision, SDPA attention, expandable memory segments
+- **Cache management**: HF_HOME environment variable for persistent model storage
+- **Cross-modal search**: 512D CLIP text and image embeddings in unified vector space
 
 ### Dependencies
 - PostgreSQL with pgvector extension
-- Python packages: psycopg2, python-dotenv, pandas, s3fs
+- Python packages: psycopg2, python-dotenv, pandas, s3fs, sentence-transformers, torch, pillow, tqdm, boto3
+- CUDA-compatible GPU (Tesla T4 or equivalent) for optimal performance
+- Google Colab for cloud-based GPU acceleration
 - AWS CLI v2 for S3 access
 
 ### Development Environment
@@ -93,11 +186,15 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
 
 ### Next Steps
 1. ~~Load sample data into `glovo_ai.products` table~~ ✅ **Completed** - Production loader implemented
-2. Implement embedding generation for `text_emb_je3`, `clip_text_emb`, `clip_image_emb`
-3. Develop hybrid search query interface
-4. Test end-to-end pipeline with sample dataset
+2. ~~Implement embedding generation for `text_emb_je3`, `clip_text_emb`, `clip_image_emb`~~ ✅ **Completed** - GPU-optimized modules with Colab workflow
+3. ~~Add additional embedding models (E5, GTE, CLIP multilingual)~~ ✅ **Completed** - Four new embedding models with backfill scripts
+4. Develop hybrid search query interface with vector similarity scoring
+5. Implement multi-modal search combining text and image embeddings
+6. Test end-to-end pipeline with sample dataset and performance benchmarking
+7. Deploy search API with FastAPI and integrate with production systems
 
 ---
 
-[Unreleased]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/username/glovo-ai-hybrid-search/releases/tag/v0.1.0

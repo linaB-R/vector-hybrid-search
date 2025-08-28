@@ -46,3 +46,26 @@ BEGIN
 END$$;
 
 
+
+
+-- New vector columns for additional models (idempotent)
+-- Note: Use separate ALTER TABLE statements for compatibility
+ALTER TABLE glovo_ai.products
+  ADD COLUMN IF NOT EXISTS text_emb_e5 vector(384);
+
+COMMENT ON COLUMN glovo_ai.products.text_emb_e5 IS '384D text embeddings from intfloat/multilingual-e5-small';
+
+ALTER TABLE glovo_ai.products
+  ADD COLUMN IF NOT EXISTS text_emb_gte vector(768);
+
+COMMENT ON COLUMN glovo_ai.products.text_emb_gte IS '768D text embeddings from Alibaba-NLP/gte-multilingual-base';
+
+ALTER TABLE glovo_ai.products
+  ADD COLUMN IF NOT EXISTS image_emb_clip vector(512);
+
+COMMENT ON COLUMN glovo_ai.products.image_emb_clip IS '512D image embeddings from openai/clip-vit-base-patch32 (CLIP ViT-B/32 image encoder).';
+
+ALTER TABLE glovo_ai.products
+  ADD COLUMN IF NOT EXISTS text_emb_clip_multi vector(512);
+
+COMMENT ON COLUMN glovo_ai.products.text_emb_clip_multi IS '512D multilingual text embeddings from sentence-transformers/clip-ViT-B-32-multilingual-v1 (text encoder aligned to CLIP image space). Use cosine similarity against image_emb_clip for cross-modal retrieval.';
