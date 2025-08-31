@@ -198,3 +198,42 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
 [Unreleased]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/username/glovo-ai-hybrid-search/releases/tag/v0.1.0
+
+## [0.3.0] - 2025-08-31
+
+### Added
+- Google Colab notebook flow extended to support full embedding pipeline with ordered execution:
+  - Uploader cell accepts: `backfill_text_e5.py`, `backfill_text_gte.py`, `backfill_text_je3.py`, `backfill_clip_512.py` and embedding modules `text_e5_small.py`, `text_gte_base.py`, `text_je3.py`, `text_clip_multi.py`, `image_clip_vitb32.py`.
+  - Execution order aligned to demo requirements:
+    1) Text→Text embeddings: E5 (384D) → GTE (768D) → JE-3 (1024D)
+    2) Cross-modal CLIP: Text→Image (`text_emb_clip_multi`, 512D) then Image→Text (`image_emb_clip`, 512D)
+  - Batch sizes tuned for Tesla T4 (16 GB): E5=512, GTE=256, JE-3=128, CLIP text=256, CLIP image=128.
+
+- Data ingestion filters enforced in `src/ingest/ingest_s3_csv.py`:
+  - Hardcoded whitelist for Spanish-speaking markets applied by default:
+    `['MX','CO','ES','AR','PE','VE','CL','GT','EC','BO','CU','DO','HN','PY','SV','NI','CR','PA','UY','GQ','PR']`
+  - Mandatory non-null/non-empty `product_description`.
+  - Retains existing constraints: valid non-empty `s3_path` and exclusion of auto stores (`store_name` starting with `AS_`).
+  - CLI `--country-codes` still supported; combined with the whitelist (intersection) to avoid out-of-scope markets.
+
+### Changed
+- Notebook sanity-import cell updated to reference the new embedding modules and CLIP 512 pipeline; legacy `clip_v2` paths remain tolerated only for back-compat.
+- Embedding run cells switched from single JE-3 run to the required ordered sequence (E5 → GTE → JE-3) followed by CLIP text→image, then image→text.
+
+### Verified
+- Schema check: `database/migrations/02_tables.sql` already contains the required vector columns and dimensions used by the active backfill scripts:
+  - `text_emb_e5 vector(384)`
+  - `text_emb_gte vector(768)`
+  - `text_emb_je3 vector(1024)`
+  - `text_emb_clip_multi vector(512)`
+  - `image_emb_clip vector(512)`
+  No migration changes needed; columns are actively populated by their respective backfill jobs.
+
+### RAG readiness notes
+- Current chunking strategy remains record-level: `product_name · collection_section. product_description` per row; no intra-document chunking or overlap.
+- A concrete plan for RAG demo is documented (chunking options, hybrid retrieval with BM25+vectors, optional re-ranking, prompt grounding with citations, guardrails, and evaluation). This does not alter code yet but informs next implementation steps.
+
+### Operational recap
+- Migrations: `python database/apply_migrations.py`
+- Ingest: `python src/ingest/ingest_s3_csv.py --max-records ... --output-dir data`
+- Load: `python src/loader/upload_parquet_to_supabase.py --method auto --data-dir data`

@@ -13,6 +13,31 @@ OUTPUT_FILENAME = "filtered_dataset.parquet"
 # Rows per chunk when streaming from S3
 CHUNK_SIZE = 200_000
 
+# Hardcoded filter: keep only these country codes
+SPANISH_SPEAKER_COUNTRIES = [
+    'MX',  # México
+    'CO',  # Colombia
+    'ES',  # España
+    'AR',  # Argentina
+    'PE',  # Perú
+    'VE',  # Venezuela
+    'CL',  # Chile
+    'GT',  # Guatemala
+    'EC',  # Ecuador
+    'BO',  # Bolivia
+    'CU',  # Cuba
+    'DO',  # República Dominicana
+    'HN',  # Honduras
+    'PY',  # Paraguay
+    'SV',  # El Salvador
+    'NI',  # Nicaragua
+    'CR',  # Costa Rica
+    'PA',  # Panamá
+    'UY',  # Uruguay
+    'GQ',  # Guinea Ecuatorial
+    'PR'   # Puerto Rico (territorio)
+]
+
 
 def ingest_s3_csv_to_parquet(max_records=None, output_dir=DEFAULT_OUTPUT_DIR, output_file=None, country_codes=None):
     """
@@ -70,8 +95,10 @@ def ingest_s3_csv_to_parquet(max_records=None, output_dir=DEFAULT_OUTPUT_DIR, ou
                     mask_country = chunk["country_code"] == country_codes
             else:
                 mask_country = True
+            # enforce Spanish-speaker countries filter
+            mask_spanish = chunk["country_code"].isin(SPANISH_SPEAKER_COUNTRIES)
 
-            sub = chunk[mask_valid_image & mask_has_description & mask_not_autostore & mask_country]
+            sub = chunk[mask_valid_image & mask_has_description & mask_not_autostore & mask_country & mask_spanish]
             if not sub.empty:
                 if max_records and total_filtered + len(sub) > max_records:
                     remaining = max_records - total_filtered

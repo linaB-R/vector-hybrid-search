@@ -1,6 +1,6 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 pandas
-s3fs
+s3fs # this is for interacting with data stored in s3.
 smart-open
 pillow
 torch
@@ -8,7 +8,7 @@ torchvision
 torchaudio
 sentence-transformers
 transformers
-boto3
+boto3 # this library allows you to connect to and use AWS.We use to connect to s3.
 einops
 supabase
 psycopg2

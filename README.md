@@ -13,9 +13,13 @@ El caso de uso objetivo son pequeñas tiendas de comercio electrónico (ej., pro
 - **PostgreSQL + pgvector** esquema y migraciones.
 - **Diseño de búsqueda híbrida**: léxica (BM25) + ANN vectorial (HNSW) + fusión de resultados.
 - **Ingesta de datos**: CSV desde S3 público → filtrado → Parquet → Supabase/PostgreSQL.
-- **Relleno de embeddings**:
-  - Embeddings de texto (Jina v3 / JE-3).
-  - Embeddings de imagen (CLIP v2, multimodal).
+  - Filtros activos por defecto en la ingesta: países hispanohablantes, `product_description` no nulo/ni vacío, `s3_path` válido y exclusión de tiendas auto-generadas (`store_name` empieza por `AS_`).
+- **Relleno de embeddings (ruta principal)**:
+  - Texto: Jina Embeddings v3 / JE-3 (1024D).
+  - Multimodal: Jina CLIP v2 (1024D texto e imagen) para recuperación cruzada texto↔imagen.
+- **Modelos adicionales (opcionales)**:
+  - Texto: E5-small (384D), GTE-base (768D).
+  - CLIP 512D: texto multilingüe alineado a imagen (512D) e imagen ViT-B/32 (512D).
 - **Integración con Supabase**: despliegue fácil vía conexión GitHub.
 - **Pipeline extensible** para futuros experimentos de búsqueda híbrida y multimodal.
 
@@ -73,7 +77,11 @@ python database\apply_migrations.py
 ### 2. Ingestar dataset desde S3 público → Parquet
 
 ```powershell
+# Descarga y filtra (por defecto aplica países hispanohablantes y descripción no nula)
 python src\ingest\ingest_s3_csv.py --max-records 100000 --output-file "data/20250123_data.parquet"
+
+# (Opcional) Filtrar además por países específicos (se intersecta con la lista hispanohablante)
+python src\ingest\ingest_s3_csv.py --country-codes ES MX AR --output-file "data/latam_es.parquet"
 ```
 
 ### 3. Subir datos filtrados a Supabase/PostgreSQL
@@ -82,25 +90,22 @@ python src\ingest\ingest_s3_csv.py --max-records 100000 --output-file "data/2025
 python .\src\loader\upload_parquet_to_supabase.py
 ```
 
-### 4. Rellenar embeddings
-
-**Embeddings de texto (JE-v3):**
+### 4. Rellenar embeddings (orden recomendado)
 
 ```powershell
-python -m src.ingest.backfill_text_je3 --batch-size 256
+# Texto → Texto (principal: Jina JE-3)
+python -m src.ingest.backfill_text_je3 --batch-size 128
+
+# (Opcional) Texto → Texto adicionales
+python -m src.ingest.backfill_text_e5 --batch-size 512
+python -m src.ingest.backfill_text_gte --batch-size 256
+
+# Multimodal Jina CLIP v2 (texto e imagen 1024D)
+python -m src.ingest.backfill_clip_v2 --mode text --batch-size 256
+python -m src.ingest.backfill_clip_v2 --mode image --batch-size 128
 ```
 
-**Embeddings de imagen (CLIP-v2):**
-
-```powershell
-python -m src.ingest.backfill_clip_v2 --mode image --batch-size 64
-```
-
-**Opcional – Embeddings de texto CLIP:**
-
-```powershell
-python -m src.ingest.backfill_clip_v2 --mode text --batch-size 128
-```
+> Nota: si prefieres la ruta CLIP 512D (texto multilingüe + ViT-B/32), usa `src/ingest/backfill_clip_512.py` con `--mode text_multi` e `--mode image`.
 
 ---
 
@@ -143,12 +148,19 @@ lina/
 ├── src/
 │   ├── __init__.py
 │   ├── embeddings/
+│   │   ├── text_je3.py
 │   │   ├── clip_v2.py
-│   │   └── text_je3.py
+│   │   ├── text_e5_small.py
+│   │   ├── text_gte_base.py
+│   │   ├── text_clip_multi.py
+│   │   └── image_clip_vitb32.py
 │   ├── ingest/
 │   │   ├── __init__.py
+│   │   ├── backfill_text_je3.py
 │   │   ├── backfill_clip_v2.py
-│   │   └── backfill_text_je3.py
+│   │   ├── backfill_text_e5.py
+│   │   ├── backfill_text_gte.py
+│   │   └── backfill_clip_512.py
 │   └── loader/
 │       └── upload_parquet_to_supabase.py
 ├── .env.sample   # variables de entorno de ejemplo (añadir aquí los secretos necesarios)
