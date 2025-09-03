@@ -15,3 +15,6 @@ psycopg2
 python-dotenv
 pyarrow
 tqdm
+scikit-learn
+matplotlib
+umap-learn
