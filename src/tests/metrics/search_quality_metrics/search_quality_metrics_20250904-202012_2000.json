@@ -1,0 +1,69 @@
+{
+  "source": "supabase_postgres: glovo_ai.products",
+  "limit": 2000,
+  "embeddings": {
+    "text_emb_e5": {
+      "hybrid_recall": {
+        "recall@1": 0.21644295302013422,
+        "recall@5": 0.4639261744966443,
+        "recall@10": 0.5947986577181208,
+        "queries_evaluated": 468,
+        "avg_pool_size": 135.8311965811966
+      },
+      "filter_separation": {
+        "collection_section": {
+          "intra_mean": 0.8596840055955259,
+          "inter_mean": 0.8158534483671188,
+          "separation": 0.04383055722840712
+        },
+        "store_name": {
+          "intra_mean": 0.8423532705050621,
+          "inter_mean": 0.8177215590596199,
+          "separation": 0.024631711445442295
+        }
+      }
+    },
+    "text_emb_gte": {
+      "hybrid_recall": {
+        "recall@1": 0.17281879194630873,
+        "recall@5": 0.41694630872483224,
+        "recall@10": 0.5419463087248322,
+        "queries_evaluated": 468,
+        "avg_pool_size": 135.8311965811966
+      },
+      "filter_separation": {
+        "collection_section": {
+          "intra_mean": 0.6485755587851078,
+          "inter_mean": 0.526112267112732,
+          "separation": 0.1224632916723758
+        },
+        "store_name": {
+          "intra_mean": 0.6118716791234311,
+          "inter_mean": 0.5308358739972114,
+          "separation": 0.08103580512621966
+        }
+      }
+    },
+    "text_emb_je3": {
+      "hybrid_recall": {
+        "recall@1": 0.1686241610738255,
+        "recall@5": 0.38171140939597314,
+        "recall@10": 0.5067114093959731,
+        "queries_evaluated": 468,
+        "avg_pool_size": 135.8311965811966
+      },
+      "filter_separation": {
+        "collection_section": {
+          "intra_mean": 0.638829618018343,
+          "inter_mean": 0.4991562349528074,
+          "separation": 0.13967338306553562
+        },
+        "store_name": {
+          "intra_mean": 0.6012123834647737,
+          "inter_mean": 0.5052819254875183,
+          "separation": 0.09593045797725541
+        }
+      }
+    }
+  }
+}

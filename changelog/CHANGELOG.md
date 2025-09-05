@@ -4,6 +4,36 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-09-04
+
+### Added
+- New evaluation scripts (simple, CLI-first, minimal):
+  - `src/tests/search_quality_metrics.py`
+    - Metrics: Hybrid Recall@{1,5,10} with structured filters `(country_code, city_code)` using `collection_section` as a relevance proxy; Filter‑Separation score for `collection_section` and `store_name`.
+    - CLI: `--limit`, `--out-dir`, `--seed` (seed controls sampling and all randomness).
+    - Output: timestamped JSON to `src/tests/metrics/` (user can direct to subfolders via `--out-dir`).
+  - `src/tests/relevance_quality_metrics.py`
+    - Metrics: 1-NN Accuracy (leave-one-out, cosine), Silhouette Score (cosine), KMeans ARI/NMI (k = unique labels from `collection_section`), Label Consistency@{1,5,10}.
+    - CLI: `--limit`, `--out-dir`, `--seed` (reproducible KMeans and neighbor sampling).
+    - Output: timestamped JSON to `src/tests/metrics/`.
+  - `src/tests/multimodal_alignment_metrics.py`
+    - Metrics (cross‑modal): Recall@{1,5,10}, MRR, Positive vs Negative Pair Separation (cosine/euclidean) for aligned text↔image pairs.
+    - Columns: prioritizes matched 512D pair `text_emb_clip_multi` ↔ `image_emb_clip`; falls back to `clip_text_emb`/`clip_image_emb` if needed.
+    - Safeguards: dimension mismatch detection recorded in output instead of failing.
+    - CLI: `--limit`, `--out-dir`, `--seed`.
+    - Output: timestamped JSON to `src/tests/metrics/`.
+
+### Changed
+- Standardized CLI flags across all evaluation scripts (`--limit`, `--out-dir`, `--seed`) and ensured deterministic behavior when `--seed` is provided.
+- Aligned cross‑modal evaluation to use truly matched CLIP spaces (512D) by default: `text_emb_clip_multi` with `image_emb_clip`.
+
+### Deprecated
+- Replaced `src/tests/evaluate_supabase_metrics.py` with the three purpose‑built scripts above. That file is no longer used for evaluation.
+
+### Outputs & Reporting
+- Results are written as timestamped JSON under `src/tests/metrics/`. Human‑readable summaries can be stored under `src/tests/reports/` (structure mirrors metrics by category).
+- Examples now include: `search_quality_metrics_*.json`, `relevance_quality_metrics_*.json`, `multimodal_alignment_metrics_*.json` and corresponding Markdown summaries under `src/tests/reports/`.
+
 ### Added
 - **New vector embedding models and backfill scripts**
   - Added four new vector columns to `glovo_ai.products` table:
@@ -198,6 +228,31 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
 [Unreleased]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/username/glovo-ai-hybrid-search/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/username/glovo-ai-hybrid-search/releases/tag/v0.1.0
+
+## [0.3.1] - 2025-09-04
+
+### Added
+- Supabase evaluation script `src/tests/evaluate_supabase_metrics.py`:
+  - Connects via psycopg2 and loads credentials from `.env` (dotenv).
+  - Sampling with `--limit` to evaluate subsets (e.g., 1k/5k/10k).
+  - Selectable metrics via `--metrics` (or `all`):
+    - Cosine/Euclidean pair stats (text↔image aligned by row)
+    - Retrieval: Recall@{1,5,10}, nDCG@{1,5,10}, MRR (single relevant)
+    - 1-NN accuracy (leave-one-out, cosine) and Silhouette (cosine)
+    - KMeans ARI/NMI (chance-adjusted ARI recommended for interpretation)
+    - t-SNE and UMAP 2D projections colored by `collection_section`
+  - Outputs thesis-ready JSON with brief interpretations and PNG plots under `src/tests/metrics`.
+- Reports for planning and results:
+  - `src/tests/reports/Report-Planning.md` – sequenced plan from easy to hard to improve metrics
+  - `src/tests/reports/report_20250904.md` – initial results and interpretations (1k sample)
+
+### Changed
+- Default metrics output directory set to `src/tests/metrics`.
+- Requirements updated to include `scikit-learn`, `matplotlib`, and `umap-learn`.
+
+### Notes
+- For cross‑modal retrieval, prefer matched CLIP encoders: `clip_text_emb` ↔ `image_emb_clip`.
+- Text preprocessing (normalize, concise product text) planned next per Report-Planning.
 
 ## [0.3.0] - 2025-08-31
 

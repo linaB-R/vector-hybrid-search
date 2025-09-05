@@ -42,8 +42,8 @@ def _get_model() -> SentenceTransformer:
             trust_remote_code=True,
             cache_folder=os.environ.get("HF_HOME", "./models_cache"),
             model_kwargs={
-                "torch_dtype": torch.float16 if device == "cuda" else torch.float32,
-                "attn_implementation": "sdpa"} # <- clave para evitar flash-attn
+                "dtype": torch.float16 if device == "cuda" else torch.float32,
+                "attn_implementation": "eager"}
         )
 
         # Usar FP16 si hay GPU.

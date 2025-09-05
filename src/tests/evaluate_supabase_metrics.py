@@ -59,10 +59,12 @@ def _normalize_rows(mat: np.ndarray) -> np.ndarray:
 
 
 def _select_text_col(cols: List[str]) -> Optional[str]:
-    """Choose the first available text embedding column in preferred order."""
+    """Choose the first available text embedding column in preferred order.
+    Prefer matched CLIP text first for cross‑modal pairing with CLIP image.
+    """
     preferred = [
-        'text_emb_clip_multi',  # CLIP multi text
-        'clip_text_emb',        # CLIP text
+        'clip_text_emb',        # CLIP text (paired with image_emb_clip)
+        'text_emb_clip_multi',  # CLIP multilingual (not jointly trained with ViT-B/32 image)
         'text_emb_gte',         # GTE base
         'text_emb_e5',          # E5 small
         'text_emb_je3',         # JE-3
@@ -85,9 +87,9 @@ def _select_image_col(cols: List[str]) -> Optional[str]:
     return None
 
 
-def _fetch_sample(limit: int) -> pd.DataFrame:
-    """Pull a sample of rows from glovo_ai.products with all relevant columns.
-    We fetch id, label, and all embedding columns, then filter per metric.
+def _fetch_sample(limit: int, require_text: Optional[str] = None, require_image: Optional[str] = None) -> pd.DataFrame:
+    """Pull a sample from glovo_ai.products.
+    If require_text/image provided, enforce non-null for those columns to ensure pairs.
     """
     cols = [
         'id',
@@ -95,7 +97,15 @@ def _fetch_sample(limit: int) -> pd.DataFrame:
         'text_emb_je3', 'clip_text_emb', 'clip_image_emb',
         'text_emb_e5', 'text_emb_gte', 'image_emb_clip', 'text_emb_clip_multi',
     ]
-    sql = f"SELECT {', '.join(cols)} FROM glovo_ai.products ORDER BY id LIMIT %s"
+    base = f"SELECT {', '.join(cols)} FROM glovo_ai.products"
+    where = []
+    if require_text:
+        where.append(f"{require_text} IS NOT NULL")
+    if require_image:
+        where.append(f"{require_image} IS NOT NULL")
+    if where:
+        base += " WHERE " + " AND ".join(where)
+    sql = base + " ORDER BY id LIMIT %s"
     with _db_conn() as conn:
         df = pd.read_sql(sql, conn, params=(limit,))
     return df
@@ -257,16 +267,47 @@ def main():
     parser.add_argument(
         "--out-dir", default="src/tests/metrics", help="Directory to save JSON and plots"
     )
+    parser.add_argument("--text-col", help="Override auto text column selection")
+    parser.add_argument("--image-col", help="Override auto image column selection")
+    parser.add_argument("--text-col-queries", help="Text column for queries (text→text retrieval)")
+    parser.add_argument("--text-col-targets", help="Text column for targets (text→text retrieval)")
+    parser.add_argument("--text-only", action='store_true', help="Disable any image-based metrics and compute text-only metrics")
+    parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
     start = time.time()
+    if args.seed is not None:
+        np.random.seed(args.seed)
 
-    # Fetch a sample and detect usable embedding columns.
-    df = _fetch_sample(args.limit)
-    cols = df.columns.tolist()
-    text_col = _select_text_col(cols)
-    image_col = _select_image_col(cols)
+    # Determine metric set
+    selected = set([m.strip().lower() for m in args.metrics.split(',')])
+    if 'all' in selected:
+        selected = {'cosine', 'euclidean', 'retrieval', 'knn', 'silhouette', 'tsne', 'umap', 'ari', 'nmi'}
+
+    # Initial auto selection (may be overridden below)
+    probe_df = _fetch_sample(min(args.limit, 100))
+    cols = probe_df.columns.tolist()
+    text_col = args.text_col if args.text_col else _select_text_col(cols)
+    image_col = None if args.text_only else (args.image_col if args.image_col else _select_image_col(cols))
+
+    # Build WHERE filters depending on selected metrics
+    need_text = ('knn' in selected) or ('silhouette' in selected) or ('tsne' in selected) or ('umap' in selected) or ('ari' in selected) or ('nmi' in selected)
+    need_pairs = ('retrieval' in selected) or ('cosine' in selected) or ('euclidean' in selected)
+    # For text-only retrieval, we want two text columns
+    t2t_queries = args.text_col_queries
+    t2t_targets = args.text_col_targets
+    text_pairs_mode = args.text_only and t2t_queries and t2t_targets
+
+    req_text = (t2t_queries if text_pairs_mode else text_col) if (need_text or need_pairs) else None
+    req_image = None if args.text_only else (image_col if need_pairs else None)
+
+    # Fetch with requirements; if empty and CLIP text was requested but NULL in DB, fallback to multilingual CLIP text
+    df = _fetch_sample(args.limit, require_text=req_text, require_image=req_image)
+    if df.empty and (text_pairs_mode is False) and text_col == 'clip_text_emb':
+        text_col = 'text_emb_clip_multi'
+        req_text = text_col if (need_text or need_pairs) else None
+        df = _fetch_sample(args.limit, require_text=req_text, require_image=req_image)
 
     # Parse chosen text embedding and labels for label-based metrics.
     label_col = 'collection_section' if 'collection_section' in cols else None
@@ -281,8 +322,29 @@ def main():
 
     # Prepare cross-modal aligned pairs for pair/retrieval metrics.
     pair_stats = {}
-    retrieval = {'text_to_image': {}, 'image_to_text': {}}
-    if text_col and image_col:
+    retrieval = {'text_to_text': {}, 'text_to_image': {}, 'image_to_text': {}}
+
+    if text_pairs_mode:
+        # Text→Text aligned pairs using two different text columns
+        q_idx, q_mat_raw = _vectors_from_series(df[t2t_queries])
+        t_idx, t_mat_raw = _vectors_from_series(df[t2t_targets])
+        common = np.intersect1d(q_idx, t_idx)
+        if len(common) > 0:
+            pos_q = {orig: pos for pos, orig in enumerate(q_idx)}
+            pos_targ = {orig: pos for pos, orig in enumerate(t_idx)}
+            q_aligned = np.stack([q_mat_raw[pos_q[i]] for i in common])
+            t_aligned_txt = np.stack([t_mat_raw[pos_targ[i]] for i in common])
+            # Pair stats (cosine + euclidean) between text columns
+            if ('cosine' in selected) or ('euclidean' in selected):
+                pair_stats = cosine_and_euclidean_pair_stats(q_aligned, t_aligned_txt)
+            # Retrieval text→text
+            if 'retrieval' in selected:
+                retrieval['text_to_text'] = retrieval_metrics(q_aligned, t_aligned_txt)
+        else:
+            q_aligned = np.zeros((0, 0), dtype=np.float32)
+            t_aligned_txt = np.zeros((0, 0), dtype=np.float32)
+    elif (not args.text_only) and text_col and image_col:
+        # Cross‑modal path retained for backwards compatibility
         img_idx, img_mat = _vectors_from_series(df[image_col])
         common = np.intersect1d(text_idx, img_idx)
         if len(common) > 0:
@@ -293,25 +355,19 @@ def main():
         else:
             t_aligned = np.zeros((0, 0), dtype=np.float32)
             v_aligned = np.zeros((0, 0), dtype=np.float32)
-    else:
-        t_aligned = np.zeros((0, 0), dtype=np.float32)
-        v_aligned = np.zeros((0, 0), dtype=np.float32)
 
-    # Metric selection logic.
-    selected = set([m.strip().lower() for m in args.metrics.split(',')])
-    if 'all' in selected:
-        selected = {'cosine', 'euclidean', 'retrieval', 'knn', 'silhouette', 'tsne', 'umap', 'ari', 'nmi'}
+    # Metric selection already computed above.
 
     # Cosine + Euclidean pair stats on aligned text↔image.
     if ('cosine' in selected) or ('euclidean' in selected):
-        if len(t_aligned) > 0 and len(v_aligned) > 0:
-            pair_stats = cosine_and_euclidean_pair_stats(t_aligned, v_aligned)
-        else:
-            pair_stats = {}
+        # Already computed in text_to_text branch; for cross-modal compute here
+        if (not args.text_only) and 'text_to_text' not in retrieval:
+            if 't_aligned' in locals() and 'v_aligned' in locals() and len(t_aligned) > 0 and len(v_aligned) > 0:
+                pair_stats = cosine_and_euclidean_pair_stats(t_aligned, v_aligned)
 
     # Retrieval metrics (text→image and image→text) using aligned pairs.
-    if 'retrieval' in selected:
-        if len(t_aligned) > 0 and len(v_aligned) > 0:
+    if 'retrieval' in selected and (not args.text_only):
+        if 't_aligned' in locals() and 'v_aligned' in locals() and len(t_aligned) > 0 and len(v_aligned) > 0:
             retrieval['text_to_image'] = retrieval_metrics(t_aligned, v_aligned)
             retrieval['image_to_text'] = retrieval_metrics(v_aligned, t_aligned)
 

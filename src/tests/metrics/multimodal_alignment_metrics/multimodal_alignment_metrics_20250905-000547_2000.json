@@ -1,0 +1,31 @@
+{
+  "source": "supabase_postgres: glovo_ai.products",
+  "limit": 2000,
+  "image_col": "image_emb_clip",
+  "embeddings": {
+    "text_emb_clip_multi": {
+      "pairs": 2000,
+      "pair_separation": {
+        "pos_cos_mean": 0.2746473530903459,
+        "neg_cos_mean": 0.22347659211978316,
+        "cos_separation": 0.05117076097056272,
+        "pos_euc_mean": 1.2042048013210296,
+        "neg_euc_mean": 1.245958445250988,
+        "euc_separation": 0.041753643929958395,
+        "count": 2000
+      },
+      "text_to_image": {
+        "recall@1": 0.055,
+        "recall@5": 0.134,
+        "recall@10": 0.199,
+        "mrr": 0.10576320867617418
+      },
+      "image_to_text": {
+        "recall@1": 0.064,
+        "recall@5": 0.1525,
+        "recall@10": 0.2065,
+        "mrr": 0.11589962809371256
+      }
+    }
+  }
+}

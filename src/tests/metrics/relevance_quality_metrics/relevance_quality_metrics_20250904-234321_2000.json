@@ -1,0 +1,45 @@
+{
+  "source": "supabase_postgres: glovo_ai.products",
+  "limit": 2000,
+  "embeddings": {
+    "text_emb_e5": {
+      "knn_1_acc": 0.181,
+      "silhouette_cosine": -0.10063105076551437,
+      "ari": 0.05622330795988168,
+      "nmi": 0.887612164276531,
+      "label_consistency": {
+        "label_consistency@1": 0.181,
+        "label_consistency@5": 0.12430000000000001,
+        "label_consistency@10": 0.1066
+      },
+      "samples": 2000,
+      "unique_labels": 10
+    },
+    "text_emb_gte": {
+      "knn_1_acc": 0.151,
+      "silhouette_cosine": -0.1284751296043396,
+      "ari": 0.057049104546510514,
+      "nmi": 0.8866373718849342,
+      "label_consistency": {
+        "label_consistency@1": 0.151,
+        "label_consistency@5": 0.10990000000000001,
+        "label_consistency@10": 0.09115000000000001
+      },
+      "samples": 2000,
+      "unique_labels": 10
+    },
+    "text_emb_je3": {
+      "knn_1_acc": 0.1575,
+      "silhouette_cosine": -0.14131779968738556,
+      "ari": 0.042593087619783566,
+      "nmi": 0.8834894491813687,
+      "label_consistency": {
+        "label_consistency@1": 0.1575,
+        "label_consistency@5": 0.1004,
+        "label_consistency@10": 0.0864
+      },
+      "samples": 2000,
+      "unique_labels": 10
+    }
+  }
+}
