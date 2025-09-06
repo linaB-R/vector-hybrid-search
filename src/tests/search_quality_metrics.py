@@ -150,7 +150,7 @@ def _hybrid_recall(vectors: np.ndarray, country: np.ndarray, city: np.ndarray, s
 def main():
     parser = argparse.ArgumentParser(description="Compute Hybrid Recall and Filter-Separation for text embeddings")
     parser.add_argument("--limit", type=int, default=1000, help="Max rows to fetch from DB")
-    parser.add_argument("--out-dir", default="src/tests/metrics", help="Directory to save JSON")
+    parser.add_argument("--out-dir", default="src/tests/metrics/search_quality_metrics", help="Directory to save JSON")
     parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
     args = parser.parse_args()
 
@@ -207,7 +207,7 @@ def main():
     stamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"search_quality_metrics_{stamp}.json")
+    out_path = os.path.join(out_dir, f"search_quality_metrics_{stamp}_{args.limit}.json")
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, indent=2)
     print(json.dumps({'saved': out_path}, indent=2))

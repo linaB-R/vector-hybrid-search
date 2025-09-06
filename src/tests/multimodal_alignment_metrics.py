@@ -61,7 +61,7 @@ def _vectors_from_series(series: pd.Series):
 def main():
     parser = argparse.ArgumentParser(description="Compute multimodal alignment metrics (text↔image)")
     parser.add_argument("--limit", type=int, default=1000, help="Max rows to fetch from DB")
-    parser.add_argument("--out-dir", default="src/tests/metrics", help="Directory to save JSON")
+    parser.add_argument("--out-dir", default="src/tests/metrics/multimodal_alignment_metrics", help="Directory to save JSON")
     parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
     args = parser.parse_args()
 
@@ -192,7 +192,7 @@ def main():
     stamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"multimodal_alignment_metrics_{stamp}.json")
+    out_path = os.path.join(out_dir, f"multimodal_alignment_metrics_{stamp}_{args.limit}.json")
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, indent=2)
     print(json.dumps({'saved': out_path}, indent=2))

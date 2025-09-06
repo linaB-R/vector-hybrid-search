@@ -66,7 +66,8 @@ def _vectors_from_series(series: pd.Series):
 def main():
     parser = argparse.ArgumentParser(description="Compute proxy relevance metrics for text embeddings")
     parser.add_argument("--limit", type=int, default=1000, help="Max rows to fetch from DB")
-    parser.add_argument("--out-dir", default="src/tests/metrics", help="Directory to save JSON")
+    parser.add_argument("--out-dir", default="src/tests/metrics/relevance_quality_metrics", help="Directory to save JSON")
+    parser.add_argument("--proxy-column", choices=["collection_section", "store_name", "product_name"], default="collection_section", help="Column to use as proxy labels")
     parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
     args = parser.parse_args()
 
@@ -75,7 +76,7 @@ def main():
 
     limit = args.limit
     cols = [
-        'id', 'collection_section',
+        'id', 'country_code', 'collection_section', 'store_name', 'product_name',
         'text_emb_e5', 'text_emb_gte', 'text_emb_je3',
     ]
     sql = f"SELECT {', '.join(cols)} FROM glovo_ai.products ORDER BY id LIMIT %s"
@@ -100,30 +101,41 @@ def main():
         idx, mat = _vectors_from_series(df[col_name])
         if len(idx) < 3:
             continue
-        labels = df.iloc[idx]['collection_section'].astype(str).fillna('').to_numpy()
+        labels_series = df.iloc[idx][args.proxy_column].astype(str).fillna('')
+        # Base normalization for all proxies: lowercase, remove punctuation, collapse spaces
+        labels_series = labels_series.str.lower().str.replace(r'[^\w\s]+', '', regex=True).str.replace(r'\s+', ' ', regex=True).str.strip()
+        # Stronger normalization for product names: drop numeric/size tokens and keep first 3 tokens
+        if args.proxy_column == 'product_name':
+            labels_series = labels_series.str.split().map(
+                lambda toks: ' '.join(
+                    [t for t in toks if not t.isdigit() and t not in {'ml', 'g', 'kg', 'l', 'pack', 'pcs'}][:3]
+                )
+            )
+        labels = labels_series.to_numpy()
         if len(np.unique(labels)) < 2:
             continue
 
         mat = _normalize_rows(mat)
 
-        # 1-NN leave-one-out accuracy (cosine)
+        # Overall metrics (all countries)
         nn = NearestNeighbors(n_neighbors=2, metric='cosine')
         nn.fit(mat)
         _, nn_idx = nn.kneighbors(mat)
         nn1 = nn_idx[:, 1]
         knn_acc = float(np.mean(labels[nn1] == labels))
 
-        # Silhouette score (cosine)
-        sil = float(silhouette_score(mat, labels, metric='cosine'))
+        uniq = len(np.unique(labels))
+        if 2 <= uniq <= len(mat) - 1:
+            sil = float(silhouette_score(mat, labels, metric='cosine'))
+        else:
+            sil = None
 
-        # Clustering purity via ARI/NMI (KMeans with k = unique labels)
         k = len(np.unique(labels))
         kmeans = KMeans(n_clusters=k, n_init=10, random_state=(args.seed if args.seed is not None else 42))
         pred = kmeans.fit_predict(mat)
         ari = float(adjusted_rand_score(labels, pred))
         nmi = float(normalized_mutual_info_score(labels, pred))
 
-        # Label Consistency @ K (exclude self)
         k_max = 10
         nnk = NearestNeighbors(n_neighbors=min(k_max + 1, len(mat)), metric='cosine')
         nnk.fit(mat)
@@ -131,31 +143,95 @@ def main():
         idxs = [row[row != i] for i, row in enumerate(idxs)]
         ks = [1, 5, 10]
         consistency = {}
-        for k in ks:
+        for k_val in ks:
             vals = []
             for i, row in enumerate(idxs):
-                top = row[:min(k, len(row))]
+                top = row[:min(k_val, len(row))]
                 if len(top) == 0:
                     continue
                 same = np.mean(labels[top] == labels[i])
                 vals.append(float(same))
             if vals:
-                consistency[f'label_consistency@{k}'] = float(np.mean(vals))
+                consistency[f'label_consistency@{k_val}'] = float(np.mean(vals))
 
-        out['embeddings'][col_name] = {
-            'knn_1_acc': knn_acc,
-            'silhouette_cosine': sil,
-            'ari': ari,
-            'nmi': nmi,
-            'label_consistency': consistency,
-            'samples': int(len(mat)),
-            'unique_labels': int(k),
+        # By-country breakdown only when proxy is store_name
+        by_country = None
+        if args.proxy_column == 'store_name':
+            country = df.iloc[idx]['country_code'].astype(str).fillna('').to_numpy()
+            by_country = {}
+            for c in np.unique(country):
+                mask = country == c
+                if int(np.sum(mask)) < 3:
+                    continue
+                labels_c = labels[mask]
+                uniq_c = len(np.unique(labels_c))
+                if uniq_c < 2:
+                    continue
+                mat_c = mat[mask]
+
+                nn_c = NearestNeighbors(n_neighbors=2, metric='cosine')
+                nn_c.fit(mat_c)
+                _, idx_c = nn_c.kneighbors(mat_c)
+                nn1_c = idx_c[:, 1]
+                knn_acc_c = float(np.mean(labels_c[nn1_c] == labels_c))
+
+                if 2 <= uniq_c <= len(mat_c) - 1:
+                    sil_c = float(silhouette_score(mat_c, labels_c, metric='cosine'))
+                else:
+                    sil_c = None
+
+                k_c = uniq_c
+                kmeans_c = KMeans(n_clusters=k_c, n_init=10, random_state=(args.seed if args.seed is not None else 42))
+                pred_c = kmeans_c.fit_predict(mat_c)
+                ari_c = float(adjusted_rand_score(labels_c, pred_c))
+                nmi_c = float(normalized_mutual_info_score(labels_c, pred_c))
+
+                nnk_c = NearestNeighbors(n_neighbors=min(k_max + 1, len(mat_c)), metric='cosine')
+                nnk_c.fit(mat_c)
+                _, idxs_c = nnk_c.kneighbors(mat_c)
+                idxs_c = [row[row != i] for i, row in enumerate(idxs_c)]
+                consistency_c = {}
+                for k_val in ks:
+                    vals = []
+                    for i, row in enumerate(idxs_c):
+                        top = row[:min(k_val, len(row))]
+                        if len(top) == 0:
+                            continue
+                        same = np.mean(labels_c[top] == labels_c[i])
+                        vals.append(float(same))
+                    if vals:
+                        consistency_c[f'label_consistency@{k_val}'] = float(np.mean(vals))
+
+                by_country[c] = {
+                    'knn_1_acc': knn_acc_c,
+                    'silhouette_cosine': sil_c,
+                    'ari': ari_c,
+                    'nmi': nmi_c,
+                    'label_consistency': consistency_c,
+                    'samples': int(len(mat_c)),
+                    'unique_labels': int(k_c),
+                }
+
+        entry = {
+            'proxy': args.proxy_column,
+            'overall': {
+                'knn_1_acc': knn_acc,
+                'silhouette_cosine': sil,
+                'ari': ari,
+                'nmi': nmi,
+                'label_consistency': consistency,
+                'samples': int(len(mat)),
+                'unique_labels': int(k),
+            }
         }
+        if by_country is not None and len(by_country) > 0:
+            entry['by_country'] = by_country
+        out['embeddings'][col_name] = entry
 
     stamp = datetime.utcnow().strftime('%Y%m%d-%H%M%S')
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"relevance_quality_metrics_{stamp}.json")
+    out_path = os.path.join(out_dir, f"relevance_quality_metrics_{args.proxy_column}_{stamp}_{args.limit}.json")
     with open(out_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, indent=2)
     print(json.dumps({'saved': out_path}, indent=2))

@@ -1,6 +1,8 @@
 import os
 from io import BytesIO
 from typing import List, Tuple
+import re
+import unicodedata
 
 import boto3
 import psycopg2
@@ -45,7 +47,12 @@ def _fetch_text_batch(cur, limit: int):
     cur.execute(
         """
         SELECT id,
-               COALESCE(product_name, '') || CASE WHEN COALESCE(product_description,'') <> '' THEN '. ' || product_description ELSE '' END AS txt
+               TRIM(BOTH FROM (
+                 COALESCE(product_name, '') ||
+                 CASE WHEN COALESCE(store_name,'') <> '' THEN ' · ' || store_name ELSE '' END ||
+                 CASE WHEN COALESCE(collection_section,'') <> '' THEN ' · ' || collection_section ELSE '' END ||
+                 CASE WHEN COALESCE(product_description,'') <> '' THEN '. ' || product_description ELSE '' END
+               )) AS txt
         FROM glovo_ai.products
         WHERE clip_text_emb IS NULL
         ORDER BY id
@@ -74,10 +81,34 @@ def _vec_literal(vec: List[float]) -> str:
     return "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
 
 
-def backfill_clip_text(batch_size: int = 128):
+def _normalize_text(s: str) -> str:
+    if not s:
+        return ""
+    s = s.lower()
+    s = unicodedata.normalize("NFKC", s)
+    s = re.sub(r"https?://\S+|www\.\S+", " ", s)
+    s = s.replace("_", " ").replace("/", " ").replace("-", " ")
+    kept = []
+    for ch in s:
+        if ch.isalpha() or ch.isspace():
+            kept.append(ch)
+    s = "".join(kept)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def backfill_clip_text(batch_size: int = 128, reset: bool = False):
     with _db() as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
+            if reset:
+                cur.execute(
+                    """
+                    UPDATE glovo_ai.products
+                    SET clip_text_emb = NULL, updated_at = now()
+                    WHERE clip_text_emb IS NOT NULL;
+                    """
+                )
             cur.execute(
                 """
                 SELECT COUNT(*)
@@ -92,7 +123,7 @@ def backfill_clip_text(batch_size: int = 128):
                 if not rows:
                     break
                 ids = [r[0] for r in rows]
-                texts = [r[1] for r in rows]
+                texts = [_normalize_text(r[1]) for r in rows]
                 embs = embed_text(texts, batch_size=batch_size)
                 pairs = [(i, _vec_literal(e)) for i, e in zip(ids, embs)]
                 sql = (
@@ -106,11 +137,19 @@ def backfill_clip_text(batch_size: int = 128):
             pbar.close()
 
 
-def backfill_clip_image(batch_size: int = 64):
+def backfill_clip_image(batch_size: int = 64, reset: bool = False):
     s3 = _s3()
     with _db() as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
+            if reset:
+                cur.execute(
+                    """
+                    UPDATE glovo_ai.products
+                    SET clip_image_emb = NULL, updated_at = now()
+                    WHERE clip_image_emb IS NOT NULL;
+                    """
+                )
             cur.execute(
                 """
                 SELECT COUNT(*)
@@ -152,10 +191,11 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Backfill CLIP-v2 text/image embeddings")
     p.add_argument("--mode", choices=["text", "image"], required=True)
     p.add_argument("--batch-size", type=int, default=128)
+    p.add_argument("--reset", action="store_true", help="Nullify target column before backfill")
     args = p.parse_args()
     if args.mode == "text":
-        backfill_clip_text(batch_size=args.batch_size)
+        backfill_clip_text(batch_size=args.batch_size, reset=args.reset)
     else:
-        backfill_clip_image(batch_size=args.batch_size)
+        backfill_clip_image(batch_size=args.batch_size, reset=args.reset)
 
 

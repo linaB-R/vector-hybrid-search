@@ -1,0 +1,69 @@
+{
+  "source": "supabase_postgres: glovo_ai.products",
+  "limit": 2000,
+  "embeddings": {
+    "text_emb_e5": {
+      "hybrid_recall": {
+        "recall@1": 0.17795275590551182,
+        "recall@5": 0.3598425196850394,
+        "recall@10": 0.45511811023622045,
+        "queries_evaluated": 478,
+        "avg_pool_size": 154.78242677824267
+      },
+      "filter_separation": {
+        "collection_section": {
+          "intra_mean": 0.8854310049605464,
+          "inter_mean": 0.8523992998123169,
+          "separation": 0.03303170514822951
+        },
+        "store_name": {
+          "intra_mean": 0.8916903912816084,
+          "inter_mean": 0.855635255587101,
+          "separation": 0.03605513569450747
+        }
+      }
+    },
+    "text_emb_gte": {
+      "hybrid_recall": {
+        "recall@1": 0.17086614173228346,
+        "recall@5": 0.35669291338582676,
+        "recall@10": 0.4409448818897638,
+        "queries_evaluated": 478,
+        "avg_pool_size": 154.78242677824267
+      },
+      "filter_separation": {
+        "collection_section": {
+          "intra_mean": 0.6292419744942617,
+          "inter_mean": 0.5147393488049508,
+          "separation": 0.11450262568931091
+        },
+        "store_name": {
+          "intra_mean": 0.6875356302011248,
+          "inter_mean": 0.5182616125166416,
+          "separation": 0.16927401768448325
+        }
+      }
+    },
+    "text_emb_je3": {
+      "hybrid_recall": {
+        "recall@1": 0.16771653543307086,
+        "recall@5": 0.3417322834645669,
+        "recall@10": 0.43070866141732284,
+        "queries_evaluated": 478,
+        "avg_pool_size": 154.78242677824267
+      },
+      "filter_separation": {
+        "collection_section": {
+          "intra_mean": 0.6027971216709364,
+          "inter_mean": 0.4612305922329426,
+          "separation": 0.14156652943799375
+        },
+        "store_name": {
+          "intra_mean": 0.6514036856713422,
+          "inter_mean": 0.46388514710366724,
+          "separation": 0.18751853856767497
+        }
+      }
+    }
+  }
+}

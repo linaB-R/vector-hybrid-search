@@ -53,8 +53,7 @@ def _get_model() -> SentenceTransformer:
         if device == "cuda":
             _model.half()
 
-        # limitar max_seq_length si mis textos son cortos
-        _model.max_seq_length = 256
+        # no explicit max_seq_length to avoid truncation
 
         # (opcional) warn-up para estabilizar kernels/planificacion
         try:

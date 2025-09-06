@@ -50,8 +50,7 @@ def _get_clip() -> SentenceTransformer:
         if device == "cuda":
             _clip.half()
 
-        # limitar max_seq_length si mis textos son cortos
-        _clip.max_seq_length = 256
+        # no explicit max_seq_length to avoid truncation
 
         # (opcional) warm-up texto e imagen para precalentar kernels/planificacion   
         try:
