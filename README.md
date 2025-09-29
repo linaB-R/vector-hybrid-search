@@ -23,6 +23,12 @@ El caso de uso objetivo son pequeñas tiendas de comercio electrónico (ej., pro
 - **Integración con Supabase**: despliegue fácil vía conexión GitHub.
 - **Pipeline extensible** para futuros experimentos de búsqueda híbrida y multimodal.
 
+### Chat y Tests
+- API mínima FastAPI `/chat` (texto) con búsqueda híbrida (pgvector + full-text) y fusión RRF
+- Conexión Supabase vía `DATABASE_URL` con `sslmode=require` (o variables discretas con SSL forzado)
+- Tests de conectividad (DB y OpenAI) y test de chatbot con trazabilidad completa a `log/chat_run_<timestamp>/`
+- Documentación actualizada con pasos de ejecución rápidos (uvicorn) y guía de interpretación de logs
+
 ---
 
 ## 🏗️ Fundamentos Tecnológicos y Arquitectura de Datos
@@ -106,6 +112,29 @@ python -m src.ingest.backfill_clip_v2 --mode image --batch-size 128
 ```
 
 > Nota: si prefieres la ruta CLIP 512D (texto multilingüe + ViT-B/32), usa `src/ingest/backfill_clip_512.py` con `--mode text_multi` e `--mode image`.
+
+### 5. Ejecutar la API (uvicorn)
+
+```powershell
+uvicorn src.rag.chat_demo:app --reload --port 8000
+```
+
+### 6. Probar el chatbot y generar logs de trazabilidad
+
+```powershell
+pytest -q
+```
+
+Los resultados se guardan como JSON bajo `log/chat_run_<timestamp>/`:
+
+- `00_meta.json`: contexto (envs, query, parámetros)
+- `01_request.json`: petición enviada
+- `02_response_status.json`: código HTTP y latencia
+- `03_response_json.json`: respuesta completa (`answer` + `trace`)
+- `04_sql.json`: SQL vectorial y léxico
+- `05_candidates_vector_top.json`: top vectorial
+- `06_candidates_lexical_top.json`: top léxico
+- `07_final_fused.json`: ranking final fusionado (RRF)
 
 ---
 

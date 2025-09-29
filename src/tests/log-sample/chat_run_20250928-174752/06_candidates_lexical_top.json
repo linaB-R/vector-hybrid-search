@@ -1,0 +1,11 @@
+{
+  "lexical_top": [
+    {
+      "id": 11983,
+      "name": "Mini Chök Vegano",
+      "text": "Chök artesano elaborado con productos veganos, espolvoreados con azúcar glas y relleno con crema de avellana y chocolate vegano",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/BFDKZRG_0040965_951951207.png",
+      "lex_score": 0.00833333
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "timestamp": "20250928-174752",
+  "env": {
+    "DATABASE_URL": false,
+    "host": "aws-0-us-east-2.pooler.supabase.com",
+    "dbname": "postgres",
+    "OPENAI_API_KEY_present": true
+  },
+  "query": "productos con chocolate sin azúcar",
+  "params": {
+    "k": 20,
+    "ef_search": 40
+  }
+}

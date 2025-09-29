@@ -18,3 +18,8 @@ tqdm
 scikit-learn
 matplotlib
 umap-learn
+fastapi
+uvicorn
+pydantic
+pytest
+openai

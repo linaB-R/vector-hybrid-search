@@ -1,0 +1,8 @@
+{
+  "vector_sql": "SELECT id AS id, product_name AS name, product_description AS text, s3_url AS image_url, 1 - (text_emb_je3 <=> %s::vector) AS score FROM glovo_ai.products ORDER BY text_emb_je3 <=> %s::vector ASC LIMIT %s",
+  "lexical_sql": "\n        SELECT id AS id, product_name AS name,\n               product_description AS text, s3_url AS image_url,\n               ts_rank_cd(\n                 to_tsvector('spanish', coalesce(product_name, '') || ' ' || coalesce(product_description, '')),\n                 plainto_tsquery('spanish', %s)\n               ) AS lex_score\n        FROM glovo_ai.products\n        WHERE to_tsvector('spanish', coalesce(product_name, '') || ' ' || coalesce(product_description, ''))\n              @@ plainto_tsquery('spanish', %s)\n        ORDER BY lex_score DESC\n        LIMIT %s\n    ",
+  "params": {
+    "k": 20,
+    "ef_search": 40
+  }
+}

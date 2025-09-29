@@ -1,0 +1,39 @@
+{
+  "vector_top": [
+    {
+      "id": 19037,
+      "name": "Helado De Chocolate Negro Sin Azúcar (350 Ml.)",
+      "text": "Un helado de chocolate completamente sin azúcar",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/YZBLYFV_0003998_2080720343.png",
+      "score": 0.749763743576807
+    },
+    {
+      "id": 15061,
+      "name": "Eureka Chocolate Con Leche Sin Azúcar",
+      "text": "Sin azúcar",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/HXNZHVV_0003454_1634016051.png",
+      "score": 0.730964516100336
+    },
+    {
+      "id": 9055,
+      "name": "Helado de chocolate bajo en azúcar (250 ml.)",
+      "text": "A base de leche de almendras, libre de lactosa, apto para celíacos, sin TACC, bajo en azúcares, ingredientes naturales (109 calorías)",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/CBNGZLF_0003610_149148023.png",
+      "score": 0.718148299519355
+    },
+    {
+      "id": 10575,
+      "name": "Lote 6",
+      "text": "Lote que contiene Chocolate cacao aromático Uganda 81%, Hojas flor de sal 70%, Surtido chocolatinas orígenes, Flores 70 % naranja y Hojas 70% cacao",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/BFDKZRG_0123495_1439977391.png",
+      "score": 0.706598666138844
+    },
+    {
+      "id": 8893,
+      "name": "Tarta De Chocolate",
+      "text": "Sin azúcar añadida, queso crema bajo en grasa, chocolate ayacuchano, fudge con quinua y chía, reducido en grasa",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/VJTTJQD_0235141_1586141133.png",
+      "score": 0.705430724715116
+    }
+  ]
+}

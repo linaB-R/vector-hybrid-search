@@ -4,6 +4,43 @@ All notable changes to the Glovo AI Hybrid Search project will be documented in 
 
 ## [Unreleased]
 
+### Added - 2025-09-28
+- Minimal FastAPI `/chat` endpoint in `src/rag/chat_demo.py` that:
+  - Embeds text with JE3 (`src/embeddings/text_je3.py`).
+  - Runs pgvector cosine over `glovo_ai.products.text_emb_je3` with `SET LOCAL hnsw.ef_search` via `psycopg2`.
+  - Performs Spanish full‑text search (`ts_rank_cd` + `plainto_tsquery`).
+  - Fuses results with simple RRF and returns `answer` plus detailed `trace`.
+- Updated `requirements.txt` to include `fastapi`, `uvicorn`, `pydantic`.
+- Added pytest infrastructure: `pytest` and `openai` added to `requirements.txt` for connectivity tests.
+- Tests now auto-load `.env` via `python-dotenv` in `src/tests/test_connectivity.py` and `src/tests/test_openai.py` so credentials are present during pytest runs.
+- Ensured `src/rag/config.py` loads `.env` on import to make DB credentials available to the API and utilities.
+- Added support for `DATABASE_URL` with `sslmode=require` for Supabase (transaction pooler) connections in `src/rag/config.py` and tests.
+
+### Connection Guidance - 2025-09-28
+- Preferred DB config for Supabase:
+  - Set `DATABASE_URL` (e.g., `postgresql://user:password@host:port/dbname`), we auto-append `sslmode=require` when missing.
+  - Or set discrete envs `user,password,host,port,dbname`; we pass `sslmode=require`.
+  - Tests prefer `DATABASE_URL` if present.
+- `src/rag/README_rag_mvp.md`: Added minimal MVP task checklist and run steps.
+- `src/scripts/simple-supabase-connect.py`: updated to prefer `DATABASE_URL` with `sslmode=require`, printing parsed connection info.
+- `src/tests/test_chat_hybrid_logging.py`: pytest that runs multiple queries against `/chat`, saving full trace logs under `log/chat_run_<timestamp>/` (request, response, SQL, candidates, fused list).
+- `src/rag/README_rag_mvp.md`: Added Quick Run snippet for `uvicorn` and a detailed explanation of test artifacts:
+  - `00_meta.json`
+  - `01_request.json`
+  - `02_response_status.json`
+  - `03_response_json.json`
+  - `04_sql.json`
+  - `05_candidates_vector_top.json`
+  - `06_candidates_lexical_top.json`
+  - `07_final_fused.json`
+  - Plus guidance on how to interpret these files.
+
+### Fixed - 2025-09-28
+- Corrected multi-line SQL assembly in `src/rag/chat_demo.py` lexical query to resolve syntax errors.
+
+### Notes - 2025-09-28
+- Tests to validate DB and OpenAI connectivity will run via `pytest`. Consulted FastAPI and pytest docs for best practices; using `fastapi.testclient` for API tests and simple env-driven connectivity checks for external services.
+
 ## [0.3.2] - 2025-09-04
 
 ### Added

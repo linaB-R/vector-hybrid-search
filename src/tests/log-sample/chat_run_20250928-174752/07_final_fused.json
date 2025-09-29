@@ -1,0 +1,164 @@
+{
+  "final": [
+    {
+      "id": 11983,
+      "name": "Mini Chök Vegano",
+      "text": "Chök artesano elaborado con productos veganos, espolvoreados con azúcar glas y relleno con crema de avellana y chocolate vegano",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/BFDKZRG_0040965_951951207.png",
+      "lex_score": 0.00833333,
+      "hybrid_score": 0.01639344262295082
+    },
+    {
+      "id": 19037,
+      "name": "Helado De Chocolate Negro Sin Azúcar (350 Ml.)",
+      "text": "Un helado de chocolate completamente sin azúcar",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/YZBLYFV_0003998_2080720343.png",
+      "score": 0.749763743576807,
+      "hybrid_score": 0.01639344262295082
+    },
+    {
+      "id": 15061,
+      "name": "Eureka Chocolate Con Leche Sin Azúcar",
+      "text": "Sin azúcar",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/HXNZHVV_0003454_1634016051.png",
+      "score": 0.730964516100336,
+      "hybrid_score": 0.016129032258064516
+    },
+    {
+      "id": 9055,
+      "name": "Helado de chocolate bajo en azúcar (250 ml.)",
+      "text": "A base de leche de almendras, libre de lactosa, apto para celíacos, sin TACC, bajo en azúcares, ingredientes naturales (109 calorías)",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/CBNGZLF_0003610_149148023.png",
+      "score": 0.718148299519355,
+      "hybrid_score": 0.015873015873015872
+    },
+    {
+      "id": 10575,
+      "name": "Lote 6",
+      "text": "Lote que contiene Chocolate cacao aromático Uganda 81%, Hojas flor de sal 70%, Surtido chocolatinas orígenes, Flores 70 % naranja y Hojas 70% cacao",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/BFDKZRG_0123495_1439977391.png",
+      "score": 0.706598666138844,
+      "hybrid_score": 0.015625
+    },
+    {
+      "id": 8893,
+      "name": "Tarta De Chocolate",
+      "text": "Sin azúcar añadida, queso crema bajo en grasa, chocolate ayacuchano, fudge con quinua y chía, reducido en grasa",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/VJTTJQD_0235141_1586141133.png",
+      "score": 0.705430724715116,
+      "hybrid_score": 0.015384615384615385
+    },
+    {
+      "id": 4307,
+      "name": "Mousse De Chocolate Valor",
+      "text": "Receta mejorada",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/VXBHTKH_0000557_1471565735.png",
+      "score": 0.695048284417785,
+      "hybrid_score": 0.015151515151515152
+    },
+    {
+      "id": 13869,
+      "name": "Helado de Stracciatella de chocolate y coco",
+      "text": "Helado de stracciatella de chocolate y coco, sin azúcar y sin aditivos",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/YJWRKVT_0117020_1890320962.png",
+      "score": 0.691425807698468,
+      "hybrid_score": 0.014925373134328358
+    },
+    {
+      "id": 16823,
+      "name": "Coulant De Chocolate",
+      "text": "Bizcocho de chocolate, fundido en su interior con topping de dulce de leche, acompañado de helado de vainilla",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/BFDKZRG_0179075_2303349992.png",
+      "score": 0.688939907810348,
+      "hybrid_score": 0.014705882352941176
+    },
+    {
+      "id": 4201,
+      "name": "Chocolate caraíbe",
+      "text": "Tableta de chocolate con un 66% de cacao, el maridaje de las diferentes tipologías de cacao que contiene equilibra la acidez sutil del chocolate y su suave amargor, entre chocolateado y frutos secos tostados.",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/JNXWMCH_0000012_1351378883.png",
+      "score": 0.688115864950438,
+      "hybrid_score": 0.014492753623188406
+    },
+    {
+      "id": 6744,
+      "name": "Milkshake de chocolate",
+      "text": "Shake de helado de chocolate con leche entera y crema adicional, decorado con jalea de chocolate y crema chantilly a tu elección",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/CKBSJCC_0018330_1123853234.png",
+      "score": 0.68463643603569,
+      "hybrid_score": 0.014285714285714285
+    },
+    {
+      "id": 12100,
+      "name": "Choc.semi amargo 45% 100g",
+      "text": "Estuche tableta de chocolate semiamargo 45% cacao 100g",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/CBNGZLF_0018134_1111272702.png",
+      "score": 0.681954813458273,
+      "hybrid_score": 0.014084507042253521
+    },
+    {
+      "id": 4258,
+      "name": "Ballotín dorado sin azúcar (250 grs.)",
+      "text": "Mix de chocolate de práline y ganache",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/NZTCKFL_0005228_26238996.png",
+      "score": 0.676429844221046,
+      "hybrid_score": 0.013888888888888888
+    },
+    {
+      "id": 5022,
+      "name": "Mundo de chocolate",
+      "text": "Cremoso de chocolate P125 Valrhona, bizcocho de chocolate y avellanas, crumble de almendra y helado casero de chocolate acompañado con sal y aceite de Ibiza (contiene gluten, huevos, lácteos, frutos de cascara)",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/YJWRKVT_0073398_1471466115.png",
+      "score": 0.675240918121734,
+      "hybrid_score": 0.0136986301369863
+    },
+    {
+      "id": 10696,
+      "name": "Sweet cocoa caliente (8 oz.)",
+      "text": "Bebida de chocolate caliente preparado con cacao orgánico fino de aroma, nuestra fórmula de leche perfectamente vaporizada, decorado con marshmallows y palillos de chocolate",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/DZWKQPZ_0011864_1173603395.png",
+      "score": 0.674983105753368,
+      "hybrid_score": 0.013513513513513514
+    },
+    {
+      "id": 3948,
+      "name": "Choco",
+      "text": "Chocolate con arándanos y nueces",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/YJWRKVT_0101585_1694481174.png",
+      "score": 0.673074132226183,
+      "hybrid_score": 0.013333333333333334
+    },
+    {
+      "id": 18844,
+      "name": "Algodón De Azúcar Rosa",
+      "text": "De fresa",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/PJMYVHF_0005872_1626987556.png",
+      "score": 0.672946802869011,
+      "hybrid_score": 0.013157894736842105
+    },
+    {
+      "id": 4313,
+      "name": "Alfajores de chocolate premium",
+      "text": "Galletas tostadas de chocolate, rellenas de dulce de leche y cubiertas de chocolate!!!",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/FDGRWDG_0013668_1499338644.png",
+      "score": 0.672635826971655,
+      "hybrid_score": 0.012987012987012988
+    },
+    {
+      "id": 1458,
+      "name": "Coulant de chocolate negro",
+      "text": "Con helado de canela casero",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/QFYBHJR_0007147_2045876655.png",
+      "score": 0.671515589388095,
+      "hybrid_score": 0.01282051282051282
+    },
+    {
+      "id": 2896,
+      "name": "Muescli Crunchy Chocolate Gluten Free",
+      "text": "Aquí nuestro muesli rico en proteinas libre de azucares refinados y alto contenido en fibra.",
+      "image_url": "s3://glovo-products-dataset-d1c9720d/dataset/BFDKZRG_0142347_1608132581.png",
+      "score": 0.671001262541907,
+      "hybrid_score": 0.012658227848101266
+    }
+  ]
+}
